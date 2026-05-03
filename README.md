@@ -3,8 +3,8 @@
 ##โปรเจ็คของโรงเรียนเทศบาลบ้านย่านยาว (ครูจอยเคมี) เมื่อตรวจพบฝุ่น PM 2.5 สั่งให้เครื่องกรองฝุ่นเปิด และทำการแจ้งเตือนใน Line
 
 ##อุปกรณ์
-1.Nodemcu V3 Lua WIFI Module ESP8266
-2.Nodemcubase Ver1.0
+1.Nodemcu V3 Lua WIFI Module ESP8266 /n
+2.Nodemcubase Ver1.0 /n
 3.OLED i2C 0.91 
 4.GP2Y1014AU0F เซ็นเซอร์วัดฝุ่น PM2.5 วัดควัน
 5.HLK-PM01 โมดูลแปลงไฟ
