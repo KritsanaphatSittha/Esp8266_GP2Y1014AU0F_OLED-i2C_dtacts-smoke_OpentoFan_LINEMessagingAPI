@@ -37,6 +37,9 @@ WiFiClient client;
 unsigned long previousMillis = 0;
 const long interval = 10000; // 10 seconds
 
+// เพิ่มตัวแปรสำหรับจำสถานะฝุ่น ป้องกันการส่งข้อความซ้ำรัวๆ
+bool isDustHigh = false;
+
 // ================= ฟังก์ชันส่งข้อความเข้า LINE =================
 void sendLineMessage(String message)
 {
@@ -157,11 +160,25 @@ void loop()
                 Serial.println("Response: " + response);
 
                 // ---------------- ส่วนแจ้งเตือน LINE ----------------
-                // Send Line notification if dust density exceeds 37.5 µg/m³
                 if (dustDensity > 37.5)
                 {
-                    String message = "Dust level is high: " + String(dustDensity) + " µg/m³";
-                    sendLineMessage(message); // เปลี่ยนมาใช้ฟังก์ชันใหม่
+                    // แจ้งเตือนเมื่อฝุ่นสูง (ส่งแค่ครั้งแรกที่เกินค่า)
+                    if (!isDustHigh)
+                    {
+                        String message = "Dust level is high: " + String(dustDensity) + " µg/m³";
+                        sendLineMessage(message);
+                        isDustHigh = true; // อัปเดตสถานะว่าตอนนี้ฝุ่นสูงแล้ว
+                    }
+                }
+                else
+                {
+                    // แจ้งเตือนเมื่อฝุ่นต่ำลง (ส่งแค่ครั้งแรกที่กลับมาต่ำกว่าเกณฑ์)
+                    if (isDustHigh)
+                    {
+                        String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 37.5 µg/m³ แล้ว";
+                        sendLineMessage(message);
+                        isDustHigh = false; // รีเซ็ตสถานะกลับเป็นปกติ
+                    }
                 }
             }
             else
