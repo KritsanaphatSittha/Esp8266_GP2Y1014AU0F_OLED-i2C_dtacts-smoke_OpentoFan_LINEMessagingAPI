@@ -1,6 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <TridentTD_LineNotify.h>
+#include <WiFiClientSecure.h> // เพิ่มไลบรารีสำหรับเชื่อมต่อ HTTPS ของ LINE Messaging API
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -27,12 +27,44 @@ const char *ssid = "Krit";
 const char *password = "0916543675";
 const char *serverIp = "192.168.0.109";
 const int serverPort = 80;
-const char *lineToken = "zligGTMmvvVbqT5vKtjcBibrQNXvWDQJlfJR5KCgDx2";
+
+// ================= ตั้งค่า LINE Messaging API =================
+const String lineToken = "NokZLVFOvnfN5njB/LUfnJtWP/GyNmQ/Y/H8Z0qj6cXNA3elz39e1UNhT+mzjcFAw14SJ07YJ3tDyaOXCu+fJB6IesCQjiHkwq0grACJlCrjYVmo1I0f/HrhE5HJUFUQQ9puQtiLy6xPUnvVIv8F5gdB04t89/1O/w1cDnyilFU=";
+const String userId = "Ude2477bb62de0d8e7e3c39b0b080274b";
 
 WiFiClient client;
 
 unsigned long previousMillis = 0;
 const long interval = 10000; // 10 seconds
+
+// ================= ฟังก์ชันส่งข้อความเข้า LINE =================
+void sendLineMessage(String message)
+{
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        WiFiClientSecure secureClient;
+        secureClient.setInsecure(); // ข้ามการตรวจสอบ SSL
+
+        HTTPClient httpLine;
+        httpLine.begin(secureClient, "https://api.line.me/v2/bot/message/push");
+        httpLine.addHeader("Content-Type", "application/json");
+        httpLine.addHeader("Authorization", "Bearer " + lineToken);
+
+        String payload = "{\"to\": \"" + userId + "\", \"messages\": [{\"type\": \"text\", \"text\": \"" + message + "\"}]}";
+
+        int httpCode = httpLine.POST(payload);
+
+        if (httpCode > 0)
+        {
+            Serial.println("LINE Push HTTP Response code: " + String(httpCode));
+        }
+        else
+        {
+            Serial.println("Error sending LINE Push: " + String(httpCode));
+        }
+        httpLine.end();
+    }
+}
 
 void setup()
 {
@@ -55,9 +87,6 @@ void setup()
     }
     Serial.println();
     Serial.println("Connected to WiFi");
-
-    // Set Line Token
-    LINE.setToken(lineToken);
 }
 
 void loop()
@@ -114,6 +143,7 @@ void loop()
 
         if (WiFi.status() == WL_CONNECTED)
         {
+            // ---------------- ส่วนควบคุมพัดลม (Local Server) ----------------
             HTTPClient http;
             String url = String("http://") + serverIp + ":" + serverPort + "/trigger";
             http.begin(client, url);
@@ -126,11 +156,12 @@ void loop()
                 Serial.println("HTTP Response code: " + String(httpCode));
                 Serial.println("Response: " + response);
 
-                // Send Line notification if dust density exceeds 35 µg/m³
+                // ---------------- ส่วนแจ้งเตือน LINE ----------------
+                // Send Line notification if dust density exceeds 37.5 µg/m³
                 if (dustDensity > 37.5)
                 {
                     String message = "Dust level is high: " + String(dustDensity) + " µg/m³";
-                    LINE.notify(message);
+                    sendLineMessage(message); // เปลี่ยนมาใช้ฟังก์ชันใหม่
                 }
             }
             else
