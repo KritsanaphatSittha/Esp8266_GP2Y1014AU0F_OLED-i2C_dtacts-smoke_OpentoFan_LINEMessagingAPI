@@ -49,11 +49,11 @@
 
 ## 📺 แหล่งข้อมูลเรียนรู้เพิ่มเติม
 
-*   **🎬 วิดีโอสอนการใช้งาน:** YouTube Playlist
+*   **🎬 วิดีโอสอนการใช้งาน:** [YouTube Playlist](https://youtube.com/playlist?list=PLDEk-pFe7o2oBiwkpyxHmaJMOvWCJq-qa&si=C_K_D3OSdKXf1M0z)
     *   *(สอนการต่อสายไฟ, การตั้งค่าแจ้งเตือน Line และอื่นๆ)*
-*   **🔌 ผังการต่อวงจร:** Tinkercad Circuit
-*   **💬 Line Messaging API:** Line Developers Console
-    *   *(Account เชื่อมต่อกับ: gard_234@hotmail.com)*
+*   **🔌 ผังการต่อวงจร:** [Tinkercad Circuit](https://www.tinkercad.com/things/kGfVL0NhL9O/editel?returnTo=%2Fdashboard&sharecode=AYGHNVcWbfXhSwfA0dNsWSto6_8WgoMVQUDHucn6s80)
+*   **💬 Line Messaging API:** [Line Developers Console](https://developers.line.biz/console/channel/2007364452/basics)
+    *   *(Account: gard_234@hotmail.com)*
 
 ---
 
