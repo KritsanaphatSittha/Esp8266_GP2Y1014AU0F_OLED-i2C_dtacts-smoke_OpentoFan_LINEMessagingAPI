@@ -165,7 +165,7 @@ void loop()
                     // แจ้งเตือนเมื่อฝุ่นสูง (ส่งแค่ครั้งแรกที่เกินค่า)
                     if (!isDustHigh)
                     {
-                        String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 3.75 µg/m³ แล้ว อยู่ที่  " + String(dustDensity) + " µg/m³" + "ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
+                        String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 37.5 µg/m³ แล้ว อยู่ที่  " + String(dustDensity) + " µg/m³" + "ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
                         sendLineMessage(message);
                         isDustHigh = true; // อัปเดตสถานะว่าตอนนี้ฝุ่นสูงแล้ว
                     }
