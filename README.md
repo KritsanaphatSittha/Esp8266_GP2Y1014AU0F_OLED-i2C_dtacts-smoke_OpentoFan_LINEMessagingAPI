@@ -39,6 +39,9 @@
 - `ArduinoJson`
 - `ArduinoHttpClient`
 - `PubSubClient`
+- `Adafruit SSD1306`
+- `Adafruit GFX Library`
+- `Adafruit BusIO`
 
 **Sensor & Display Libraries:**
 - `Adafruit Unified Sensor`
