@@ -48,11 +48,13 @@ bool isDustHigh = false;
 // เวอร์ชันปัจจุบัน
 const float currentVersion = 1.0;
 
-// *** สำคัญ: เปลี่ยน USER_NAME และ REPO_NAME เป็นของคุณ ***
-const String fwUrl =
-    "https://raw.githubusercontent.com/USER_NAME/REPO_NAME/main/Sensor.bin";
-const String versionUrl = "https://raw.githubusercontent.com/USER_NAME/"
-                          "REPO_NAME/main/Sensor_Version.txt";
+const String fwUrl = "https://raw.githubusercontent.com/KritsanaphatSittha/"
+                     "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_"
+                     "LINEMessagingAPI/main/Sensor.bin";
+const String versionUrl =
+    "https://raw.githubusercontent.com/KritsanaphatSittha/"
+    "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_LINEMessagingAPI/"
+    "main/Sensor_Version.txt";
 
 unsigned long lastUpdateCheck = 0;
 const unsigned long updateInterval = 3600000; // เช็คทุก 1 ชั่วโมง
