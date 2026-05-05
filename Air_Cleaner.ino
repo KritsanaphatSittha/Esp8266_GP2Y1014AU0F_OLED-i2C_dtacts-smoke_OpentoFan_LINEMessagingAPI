@@ -8,6 +8,11 @@ const char *ssid = "Krit";
 const char *password = "0916543675";
 const int fanPin = D6;
 
+// --- การตั้งค่า Static IP ---
+IPAddress local_IP(192, 168, 0, 109);
+IPAddress gateway(192, 168, 0, 1); // เปลี่ยนให้ตรงกับ Gateway ของเน็ตโรงเรียน
+IPAddress subnet(255, 255, 255, 0);
+
 // --- ส่วนของ OTA Update ---
 const float currentVersion = 1.0; // เปลี่ยนเลขนี้ทุกครั้งที่อัปเดตโค้ดใหม่
 
@@ -31,21 +36,15 @@ void checkForUpdates() {
   HTTPClient http;
   Serial.println("Checking version from: " + versionUrl);
 
+  bool updateNeeded = false;
   if (http.begin(client, versionUrl)) {
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
       String newVersion = http.getString();
       newVersion.trim();
       if (newVersion.toFloat() > currentVersion) {
-        Serial.printf("New version available: %s. Updating...\n",
-                      newVersion.c_str());
-        t_httpUpdate_return ret = ESPhttpUpdate.update(client, fwUrl);
-
-        if (ret == HTTP_UPDATE_FAILED) {
-          Serial.printf("Update Failed (%d): %s\n",
-                        ESPhttpUpdate.getLastError(),
-                        ESPhttpUpdate.getLastErrorString().c_str());
-        }
+        Serial.println("New version available: " + newVersion);
+        updateNeeded = true;
       } else {
         Serial.println("Current version is up to date.");
       }
@@ -57,6 +56,15 @@ void checkForUpdates() {
   } else {
     Serial.println("Unable to connect to GitHub");
   }
+
+  if (updateNeeded) {
+    Serial.println("Updating...");
+    t_httpUpdate_return ret = ESPhttpUpdate.update(client, fwUrl);
+    if (ret == HTTP_UPDATE_FAILED) {
+      Serial.printf("Update Failed (%d): %s\n", ESPhttpUpdate.getLastError(),
+                    ESPhttpUpdate.getLastErrorString().c_str());
+    }
+  }
 }
 
 void setup() {
@@ -65,7 +73,11 @@ void setup() {
   pinMode(fanPin, OUTPUT);
   digitalWrite(fanPin, LOW);
 
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("STA Failed to configure");
+  }
   WiFi.begin(ssid, password);
+  WiFi.setAutoReconnect(true); // สั่งให้ ESP8266 เชื่อมต่อ WiFi อัตโนมัติเมื่อหลุด
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);

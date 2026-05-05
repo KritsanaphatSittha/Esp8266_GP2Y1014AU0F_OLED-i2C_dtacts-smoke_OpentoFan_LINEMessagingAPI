@@ -69,27 +69,31 @@ void checkForUpdates() {
   http.begin(secureClient, versionUrl);
   int httpCode = http.GET();
 
+  bool updateNeeded = false;
   if (httpCode == HTTP_CODE_OK) {
     String newVersion = http.getString();
     newVersion.trim();
     if (newVersion.toFloat() > currentVersion) {
       Serial.println("New version found: " + newVersion);
-      t_httpUpdate_return ret = ESPhttpUpdate.update(secureClient, fwUrl);
-
-      switch (ret) {
-      case HTTP_UPDATE_FAILED:
-        Serial.printf("Update Failed (%d): %s\n", ESPhttpUpdate.getLastError(),
-                      ESPhttpUpdate.getLastErrorString().c_str());
-        break;
-      case HTTP_UPDATE_NO_UPDATES:
-        Serial.println("No updates available.");
-        break;
-      }
+      updateNeeded = true;
     } else {
       Serial.println("No update needed.");
     }
   }
   http.end();
+
+  if (updateNeeded) {
+    t_httpUpdate_return ret = ESPhttpUpdate.update(secureClient, fwUrl);
+    switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("Update Failed (%d): %s\n", ESPhttpUpdate.getLastError(),
+                    ESPhttpUpdate.getLastErrorString().c_str());
+      break;
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("No updates available.");
+      break;
+    }
+  }
 }
 
 // ================= ฟังก์ชันส่งข้อความเข้า LINE =================
@@ -130,6 +134,7 @@ void setup() {
   }
 
   WiFi.begin(ssid, password);
+  WiFi.setAutoReconnect(true); // สั่งให้ ESP8266 เชื่อมต่อ WiFi อัตโนมัติเมื่อหลุด
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -192,42 +197,44 @@ void loop() {
     display.display();
 
     if (WiFi.status() == WL_CONNECTED) {
-      // ---------------- ส่วนควบคุมพัดลม (Local Server) ----------------
-      HTTPClient http;
-      String url = String("http://") + serverIp + ":" + serverPort + "/trigger";
-      http.begin(client, url);
-      String payload = (dustDensity > 37.5) ? "ON" : "OFF";
-      int httpCode = http.POST(payload);
+      // ตรวจสอบว่าสถานะพัดลมควรจะเป็นอย่างไร (Hysteresis Logic)
+      bool shouldBeOn = (dustDensity > 37.5)
+                            ? true
+                            : (dustDensity < 30.0 ? false : isDustHigh);
 
-      if (httpCode > 0) {
-        String response = http.getString();
-        Serial.println("HTTP Response code: " + String(httpCode));
-        Serial.println("Response: " + response);
+      // ส่งข้อมูลเมื่อสถานะเปลี่ยนเท่านั้น (State Change Detection)
+      if (shouldBeOn != isDustHigh) {
+        // ---------------- ส่วนควบคุมพัดลม (Local Server) ----------------
+        HTTPClient http;
+        http.setTimeout(2000); // รอคำตอบจากเครื่องกรองแค่ 2 วินาทีพอ ถ้าเกินให้ข้ามไปเลย
+        String url =
+            String("http://") + serverIp + ":" + serverPort + "/trigger";
+        http.begin(client, url);
 
-        // ---------------- ส่วนแจ้งเตือน LINE ----------------
-        if (dustDensity > 37.5) {
-          // แจ้งเตือนเมื่อฝุ่นสูง (ส่งแค่ครั้งแรกที่เกินค่า)
-          if (!isDustHigh) {
+        String payload = shouldBeOn ? "ON" : "OFF";
+        int httpCode = http.POST(payload);
+
+        if (httpCode > 0) {
+          Serial.println("HTTP Response code: " + String(httpCode));
+
+          // ---------------- ส่วนแจ้งเตือน LINE ----------------
+          if (shouldBeOn) {
             String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 37.5 µg/m³ แล้ว อยู่ที่  " +
-                             String(dustDensity) + " µg/m³" +
-                             "ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
+                             String(dustDensity) +
+                             " µg/m³ ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
             sendLineMessage(message);
-            isDustHigh = true; // อัปเดตสถานะว่าตอนนี้ฝุ่นสูงแล้ว
-          }
-        } else {
-          // แจ้งเตือนเมื่อฝุ่นต่ำลง (ส่งแค่ครั้งแรกที่กลับมาต่ำกว่าเกณฑ์)
-          if (isDustHigh) {
-            String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 37.5 µg/m³ แล้ว "
+          } else {
+            String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 30.0 µg/m³ แล้ว "
                              "ระบบจะทำการปิดเครื่องกรองฝุ่น 🛑";
             sendLineMessage(message);
-            isDustHigh = false; // รีเซ็ตสถานะกลับเป็นปกติ
           }
+          isDustHigh = shouldBeOn; // อัปเดตสถานะจำค่าปัจจุบัน
+        } else {
+          Serial.println("Error on HTTP request: " +
+                         http.errorToString(httpCode));
         }
-      } else {
-        Serial.println("Error on HTTP request");
+        http.end();
       }
-
-      http.end();
     }
 
     delay(2000); // Ensure a small delay between cycles
