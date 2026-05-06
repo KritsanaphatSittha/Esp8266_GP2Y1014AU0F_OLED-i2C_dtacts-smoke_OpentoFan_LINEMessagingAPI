@@ -37,10 +37,11 @@ const String lineToken =
     "HrhE5HJUFUQQ9puQtiLy6xPUnvVIv8F5gdB04t89/1O/w1cDnyilFU=";
 const String groupId = "Cd6812c2ad98ea10f4d27e82c1f537947"; // เพิ่ม Group ID
 
-WiFiClient client;
-
 unsigned long previousMillis = 0;
 const long interval = 10000; // 10 seconds
+
+unsigned long lastSyncMillis = 0;
+const long syncInterval = 300000; // 5 นาที (300,000 ms) สำหรับส่งค่าย้ำสถานะเดิม
 
 // เพิ่มตัวแปรสำหรับจำสถานะฝุ่น ป้องกันการส่งข้อความซ้ำรัวๆ
 bool isDustHigh = false;
@@ -202,37 +203,49 @@ void loop() {
                             ? true
                             : (dustDensity < 30.0 ? false : isDustHigh);
 
-      // ส่งข้อมูลเมื่อสถานะเปลี่ยนเท่านั้น (State Change Detection)
-      if (shouldBeOn != isDustHigh) {
+      bool stateChanged = (shouldBeOn != isDustHigh);
+      bool timeToSync = (currentMillis - lastSyncMillis >= syncInterval);
+
+      // ส่งข้อมูลเมื่อสถานะเปลี่ยน หรือครบเวลา Sync (ป้องกัน Air Cleaner รีบูตแล้วสถานะเพี้ยน)
+      if (stateChanged || timeToSync) {
         // ---------------- ส่วนควบคุมพัดลม (Local Server) ----------------
+        WiFiClient
+            client; // ประกาศใช้ตรงนี้เพื่อคืนหน่วยความจำหลังใช้เสร็จ (ป้องกัน Memory Leak)
         HTTPClient http;
-        http.setTimeout(2000); // รอคำตอบจากเครื่องกรองแค่ 2 วินาทีพอ ถ้าเกินให้ข้ามไปเลย
+        http.setTimeout(2000); // รอคำตอบจากเครื่องกรองแค่ 2 วินาทีพอ
         String url =
             String("http://") + serverIp + ":" + serverPort + "/trigger";
         http.begin(client, url);
-        http.addHeader("Content-Type", "text/plain"); // เพิ่ม Content-Type ให้ระบุว่าเป็น text
+        http.addHeader("Content-Type",
+                       "text/plain"); // เพิ่ม Content-Type ให้ระบุว่าเป็น text
 
         String payload = shouldBeOn ? "ON" : "OFF";
         int httpCode = http.POST(payload);
 
-        if (httpCode > 0) {
+        // เช็คว่าตอบกลับ HTTP 200 OK แสดงว่าเครื่องกรองได้รับคำสั่งและทำงานจริงๆ
+        if (httpCode == HTTP_CODE_OK) {
           Serial.println("HTTP Response code: " + String(httpCode));
 
           // ---------------- ส่วนแจ้งเตือน LINE ----------------
-          if (shouldBeOn) {
-            String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 37.5 µg/m³ แล้ว อยู่ที่  " +
-                             String(dustDensity) +
-                             " µg/m³ ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
-            sendLineMessage(message);
-          } else {
-            String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 30.0 µg/m³ แล้ว "
-                             "ระบบจะทำการปิดเครื่องกรองฝุ่น 🛑";
-            sendLineMessage(message);
+          // ส่ง LINE เฉพาะตอนสถานะ "เปลี่ยน" จริงๆ เท่านั้น จะไม่ส่งซ้ำตอนรอบ Sync ปกติ
+          if (stateChanged) {
+            if (shouldBeOn) {
+              String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 37.5 µg/m³ แล้ว อยู่ที่  " +
+                               String(dustDensity) +
+                               " µg/m³ ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
+              sendLineMessage(message);
+            } else {
+              String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 30.0 µg/m³ แล้ว "
+                               "ระบบจะทำการปิดเครื่องกรองฝุ่น 🛑";
+              sendLineMessage(message);
+            }
           }
-          isDustHigh = shouldBeOn; // อัปเดตสถานะจำค่าปัจจุบัน
+          isDustHigh = shouldBeOn;        // อัปเดตสถานะจำค่าปัจจุบัน
+          lastSyncMillis = currentMillis; // รีเซ็ตเวลา Sync
         } else {
-          Serial.println("Error on HTTP request: " +
-                         http.errorToString(httpCode));
+          Serial.println(
+              "Error on HTTP request: " + http.errorToString(httpCode) +
+              " (Code: " + String(httpCode) + ")");
         }
         http.end();
       }
