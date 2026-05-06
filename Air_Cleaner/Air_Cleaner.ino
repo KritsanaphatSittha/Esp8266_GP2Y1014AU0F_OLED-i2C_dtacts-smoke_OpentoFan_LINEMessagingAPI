@@ -8,6 +8,12 @@ const char *ssid = "Krit";
 const char *password = "0916543675";
 const int fanPin = D6;
 
+// กำหนด Static IP เพื่อให้ตัว Sensor ค้นหาเจอที่เดิมเสมอ
+IPAddress local_IP(192, 168, 0, 109);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 255, 0);
+IPAddress primaryDNS(192, 168, 0, 1);
+
 // --- ส่วนของ OTA Update ---
 const float currentVersion = 1.0; // เปลี่ยนเลขนี้ทุกครั้งที่อัปเดตโค้ดใหม่
 
@@ -67,6 +73,11 @@ void setup() {
 
   pinMode(fanPin, OUTPUT);
   digitalWrite(fanPin, LOW);
+
+  // ตั้งค่า Static IP ก่อนเริ่มเชื่อมต่อ WiFi
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS)) {
+    Serial.println("STA Failed to configure Static IP");
+  }
 
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true); // สั่งให้ ESP8266 เชื่อมต่อ WiFi อัตโนมัติเมื่อหลุด

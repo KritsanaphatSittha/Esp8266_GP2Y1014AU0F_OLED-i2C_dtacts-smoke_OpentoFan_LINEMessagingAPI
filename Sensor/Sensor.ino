@@ -210,6 +210,7 @@ void loop() {
         String url =
             String("http://") + serverIp + ":" + serverPort + "/trigger";
         http.begin(client, url);
+        http.addHeader("Content-Type", "text/plain"); // เพิ่ม Content-Type ให้ระบุว่าเป็น text
 
         String payload = shouldBeOn ? "ON" : "OFF";
         int httpCode = http.POST(payload);
