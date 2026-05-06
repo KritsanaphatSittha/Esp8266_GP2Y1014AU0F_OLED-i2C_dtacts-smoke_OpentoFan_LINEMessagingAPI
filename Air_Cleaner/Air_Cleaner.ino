@@ -6,7 +6,7 @@
 
 const char *ssid = "Krit";
 const char *password = "0916543675";
-const int fanPin = D1;
+const int fanPin = D6;
 
 // กำหนด Static IP เพื่อให้ตัว Sensor ค้นหาเจอที่เดิมเสมอ
 IPAddress local_IP(192, 168, 0, 109);
