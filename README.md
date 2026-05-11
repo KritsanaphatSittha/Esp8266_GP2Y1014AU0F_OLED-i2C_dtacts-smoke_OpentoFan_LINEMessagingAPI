@@ -28,29 +28,12 @@
 ### 1. โปรแกรมหลัก
 *   ติดตั้ง **Arduino IDE**: [ดาวน์โหลดที่นี่](https://www.arduino.cc/en/software/)
 
-### 2. การตั้งค่า Arduino IDE สำหรับ ESP8266
-เพื่อให้ Arduino IDE รู้จักบอร์ด ESP8266 และทำงานได้ถูกต้อง ให้ทำตามขั้นตอนดังนี้:
+### 2. การตั้งค่า Board
+*   ไปที่เมนู Boards Manager แล้วค้นหา: `NodeMCU 1.0 (ESP-12E Module)`
+*   เลือกพอร์ต (Port) ให้ตรงกับที่เชื่อมต่อกับคอมพิวเตอร์
 
-1.  **เพิ่ม URL ของบอร์ด ESP8266:**
-    *   ไปที่เมนู **Arduino IDE** -> **Settings...** (หรือ **Preferences**)
-    *   ในช่อง **Additional boards manager URLs** ให้วาง URL นี้:
-        `http://arduino.esp8266.com/stable/package_esp8266com_index.json`
-    *   กด **OK**
-2.  **ติดตั้งบอร์ด ESP8266:**
-    *   ไปที่เมนู **Tools** -> **Board** -> **Boards Manager...**
-    *   พิมพ์ค้นหา `esp8266` และกด **Install** ตัวเลือกโดย *ESP8266 Community*
-3.  **เลือกบอร์ดและพอร์ต:**
-    *   **Board:** เลือก `NodeMCU 1.0 (ESP-12E Module)`
-    *   **Port:** เลือกพอร์ตที่เชื่อมต่อกับบอร์ด (หากไม่พบ ให้ติดตั้ง Driver CH340 หรือ CP2102)
-    *   **Upload Speed:** แนะนำที่ `115200`
-
-⚠️ **ข้อควรระวังเรื่อง Baud Rate:**
-*   ในโปรแกรม **Sensor**: ตั้งค่าไว้ที่ `9600`
-*   ในโปรแกรม **Air_Cleaner**: ตั้งค่าไว้ที่ `115200`
-*   *กรุณาปรับ Serial Monitor ให้ตรงกับค่าข้างต้นเพื่อดูข้อมูล*
-
-### 3. การติดตั้งไลบรารี (Library Manager)
-ไปที่เมนู **Tools** -> **Manage Libraries...** ค้นหาและติดตั้งไลบรารีดังนี้:
+### 3. ไลบรารีที่จำเป็น (Library Manager)
+กรุณาติดตั้งไลบรารีต่อไปนี้ผ่าน Library Manager ใน Arduino IDE:
 
 **System Libraries:**
 - `ArduinoJson`
@@ -64,7 +47,6 @@
 - `Adafruit Unified Sensor`
 - `DHT sensor library`
 - `LiquidCrystal_I2C`
-*หมายเหตุ: เมื่อติดตั้ง Adafruit SSD1306 หากระบบถามหา dependencies ให้เลือก "Install All"*
 
 ---
 
