@@ -6,7 +6,7 @@
 
 const char *ssid = "Krit";
 const char *password = "0916543675";
-const int fanPin = D6;
+const int fanPin = D1;
 
 // กำหนด Static IP เพื่อให้ตัว Sensor ค้นหาเจอที่เดิมเสมอ
 IPAddress local_IP(192, 168, 0, 109);
@@ -15,7 +15,8 @@ IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(192, 168, 0, 1);
 
 // --- ส่วนของ OTA Update ---
-const float currentVersion = 1.0; // เปลี่ยนเลขนี้ทุกครั้งที่อัปเดตโค้ดใหม่
+const float currentVersion =
+    1.2; // เปลี่ยนเลขนี้ให้ตรงกับ Air_Cleaner_Version.txt บน GitHub
 
 const String fwUrl = "https://raw.githubusercontent.com/KritsanaphatSittha/"
                      "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_"
