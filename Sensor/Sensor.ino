@@ -45,9 +45,10 @@ const long syncInterval = 300000; // 5 นาที (300,000 ms) สำหรั
 
 // เพิ่มตัวแปรสำหรับจำสถานะฝุ่น ป้องกันการส่งข้อความซ้ำรัวๆ
 bool isDustHigh = false;
+bool oledInitialized = false; // เพิ่มตัวแปรสำหรับเช็คสถานะ OLED
 
 // เวอร์ชันปัจจุบัน
-const float currentVersion = 1.0;
+const float currentVersion = 1.1;
 
 const String fwUrl = "https://raw.githubusercontent.com/KritsanaphatSittha/"
                      "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_"
@@ -129,9 +130,10 @@ void setup() {
   pinMode(ledPower, OUTPUT);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;)
-      ;
+    Serial.println(F("SSD1306 allocation failed. Continuing without OLED."));
+    oledInitialized = false; // ตั้งค่าเป็น false หากเริ่มต้นไม่สำเร็จ
+  } else {
+    oledInitialized = true; // ตั้งค่าเป็น true หากเริ่มต้นสำเร็จ
   }
 
   WiFi.begin(ssid, password);
@@ -153,7 +155,9 @@ void loop() {
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
 
-    display.clearDisplay();
+    if (oledInitialized) {
+      display.clearDisplay();
+    }
     digitalWrite(ledPower, LOW);
     delayMicroseconds(samplingTime);
 
@@ -182,20 +186,22 @@ void loop() {
     Serial.print(dustDensity);
     Serial.println(" µg/m³");
 
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println(F("PM 2.5"));
+    if (oledInitialized) { // ตรวจสอบว่า OLED เริ่มต้นทำงานได้หรือไม่ก่อนแสดงผล
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(0, 0);
+      display.println(F("PM 2.5"));
 
-    display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-    display.println("");
+      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+      display.println("");
 
-    display.setTextSize(2);
-    display.setTextColor(SSD1306_WHITE);
-    display.print(dustDensity);
-    display.println(" ug");
+      display.setTextSize(2);
+      display.setTextColor(SSD1306_WHITE);
+      display.print(dustDensity);
+      display.println(" ug");
 
-    display.display();
+      display.display();
+    }
 
     if (WiFi.status() == WL_CONNECTED) {
       // ตรวจสอบว่าสถานะพัดลมควรจะเป็นอย่างไร (Hysteresis Logic)
@@ -225,33 +231,33 @@ void loop() {
         // เช็คว่าตอบกลับ HTTP 200 OK แสดงว่าเครื่องกรองได้รับคำสั่งและทำงานจริงๆ
         if (httpCode == HTTP_CODE_OK) {
           Serial.println("HTTP Response code: " + String(httpCode));
-
-          // ---------------- ส่วนแจ้งเตือน LINE ----------------
-          // ส่ง LINE เฉพาะตอนสถานะ "เปลี่ยน" จริงๆ เท่านั้น จะไม่ส่งซ้ำตอนรอบ Sync ปกติ
-          if (stateChanged) {
-            if (shouldBeOn) {
-              String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 37.5 µg/m³ แล้ว อยู่ที่  " +
-                               String(dustDensity) +
-                               " µg/m³ ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
-              sendLineMessage(message);
-            } else {
-              String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 30.0 µg/m³ แล้ว "
-                               "ระบบจะทำการปิดเครื่องกรองฝุ่น 🛑";
-              sendLineMessage(message);
-            }
-          }
-          isDustHigh = shouldBeOn;        // อัปเดตสถานะจำค่าปัจจุบัน
-          lastSyncMillis = currentMillis; // รีเซ็ตเวลา Sync
         } else {
           Serial.println(
               "Error on HTTP request: " + http.errorToString(httpCode) +
               " (Code: " + String(httpCode) + ")");
         }
         http.end();
+
+        // ---------------- ส่วนแจ้งเตือน LINE (แยกอิสระ) ----------------
+        // ส่ง LINE เฉพาะตอนสถานะ "เปลี่ยน" จริงๆ เท่านั้น
+        // แม้เครื่องกรองจะออฟไลน์เราก็ต้องรู้สถานะฝุ่น
+        if (stateChanged) {
+          if (shouldBeOn) {
+            String message = "ตอนนี้ฝุ่น PM 2.5 ได้มากกว่า 37.5 µg/m³ แล้ว อยู่ที่  " +
+                             String(dustDensity) +
+                             " µg/m³ ระบบจะทำการเปิดเครื่องกรองฝุ่น 🟢";
+            sendLineMessage(message);
+          } else {
+            String message = "ตอนนี้ฝุ่น PM 2.5 ได้ต่ำกว่า 30.0 µg/m³ แล้ว "
+                             "ระบบจะทำการปิดเครื่องกรองฝุ่น 🛑";
+            sendLineMessage(message);
+          }
+        }
+
+        isDustHigh = shouldBeOn; // อัปเดตสถานะจำค่าปัจจุบันเสมอ เพื่อไม่ให้เกิด Loop ส่งซ้ำ
+        lastSyncMillis = currentMillis; // รีเซ็ตเวลา Sync
       }
     }
-
-    delay(2000); // Ensure a small delay between cycles
   }
 
   // เช็คอัปเดตอัตโนมัติเมื่อครบเวลา
