@@ -16,7 +16,7 @@ IPAddress primaryDNS(192, 168, 0, 1);
 
 // --- ส่วนของ OTA Update ---
 const float currentVersion =
-    1.3; // เปลี่ยนเลขนี้ให้ตรงกับ Air_Cleaner_Version.txt บน GitHub
+    1.4; // เปลี่ยนเลขนี้ให้ตรงกับ Air_Cleaner_Version.txt บน GitHub
 
 const String fwUrl = "https://raw.githubusercontent.com/KritsanaphatSittha/"
                      "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_"
