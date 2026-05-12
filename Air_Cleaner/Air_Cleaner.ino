@@ -35,6 +35,9 @@ void checkForUpdates() {
   WiFiClientSecure client;
   client.setInsecure(); // สำหรับ GitHub HTTPS
 
+  // 1. สำคัญ: ต้องเปิดการติดตาม Redirect เพราะ GitHub มักจะส่ง 302 Redirect
+  ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
   HTTPClient http;
   Serial.println("Checking version from: " + versionUrl);
 
@@ -44,6 +47,8 @@ void checkForUpdates() {
     if (httpCode == HTTP_CODE_OK) {
       String newVersion = http.getString();
       newVersion.trim();
+      Serial.println("Version on GitHub: " + newVersion);
+
       if (newVersion.toFloat() > currentVersion) {
         Serial.println("New version available: " + newVersion);
         updateNeeded = true;
@@ -61,10 +66,16 @@ void checkForUpdates() {
 
   if (updateNeeded) {
     Serial.println("Updating...");
+
+    // 2. แนะนำให้หยุด Server ชั่วคราวเพื่อคืนค่า RAM ให้ ESP8266 ทำงาน OTA ได้ราบรื่นขึ้น
+    server.stop();
+
     t_httpUpdate_return ret = ESPhttpUpdate.update(client, fwUrl);
+
     if (ret == HTTP_UPDATE_FAILED) {
       Serial.printf("Update Failed (%d): %s\n", ESPhttpUpdate.getLastError(),
                     ESPhttpUpdate.getLastErrorString().c_str());
+      server.begin(); // ถ้าอัปเดตไม่สำเร็จ ให้กลับมาเปิด Server ใหม่
     }
   }
 }
