@@ -6,7 +6,7 @@
 
 const char *ssid = "Krit";
 const char *password = "0916543675";
-const int fanPin = D2; // ใช้ได้ทั้ง D1 และ D2 มันคือความแรงของพัดลม
+const int fanPin = D1; // ใช้ได้ทั้ง D1 และ D2 มันคือความแรงของพัดลม
 
 // กำหนด Static IP เพื่อให้ตัว Sensor ค้นหาเจอที่เดิมเสมอ
 IPAddress local_IP(192, 168, 0, 109);
@@ -16,7 +16,7 @@ IPAddress primaryDNS(192, 168, 0, 1);
 
 // --- ส่วนของ OTA Update ---
 const float currentVersion =
-    1.3; // เปลี่ยนเลขนี้ให้ตรงกับ Air_Cleaner_Version.txt บน GitHub
+    1.4; // เปลี่ยนเลขนี้ให้ตรงกับ Air_Cleaner_Version.txt บน GitHub
 
 const String fwUrl = "https://raw.githubusercontent.com/KritsanaphatSittha/"
                      "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_"
@@ -109,6 +109,7 @@ void setup() {
 
   server.on("/trigger", HTTP_POST, []() {
     String payload = server.arg("plain");
+    payload.trim(); // ป้องกันตัวอักษรขยะหรือการขึ้นบรรทัดใหม่ที่ติดมากับ payload
     if (payload == "ON") {
       digitalWrite(fanPin, HIGH);
       Serial.println("Fan turned on");

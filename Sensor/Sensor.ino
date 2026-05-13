@@ -45,10 +45,11 @@ const long syncInterval = 300000; // 5 นาที (300,000 ms) สำหรั
 
 // เพิ่มตัวแปรสำหรับจำสถานะฝุ่น ป้องกันการส่งข้อความซ้ำรัวๆ
 bool isDustHigh = false;
-bool oledInitialized = false; // เพิ่มตัวแปรสำหรับเช็คสถานะ OLED
+bool oledInitialized = false;    // เพิ่มตัวแปรสำหรับเช็คสถานะ OLED
+bool fanStateSyncPending = true; // เพิ่มตัวแปรเช็คว่าส่งคำสั่งสำเร็จหรือไม่
 
 // เวอร์ชันปัจจุบัน
-const float currentVersion = 1.1;
+const float currentVersion = 1.2;
 
 const String fwUrl = "https://raw.githubusercontent.com/KritsanaphatSittha/"
                      "Esp8266_GP2Y1014AU0F_OLED-i2C_dtacts-smoke_OpentoFan_"
@@ -212,13 +213,14 @@ void loop() {
       bool stateChanged = (shouldBeOn != isDustHigh);
       bool timeToSync = (currentMillis - lastSyncMillis >= syncInterval);
 
-      // ส่งข้อมูลเมื่อสถานะเปลี่ยน หรือครบเวลา Sync (ป้องกัน Air Cleaner รีบูตแล้วสถานะเพี้ยน)
-      if (stateChanged || timeToSync) {
+      // ส่งข้อมูลเมื่อสถานะเปลี่ยน, ครบเวลา Sync หรือมีคำสั่งค้างส่ง (ส่งรอบก่อนไม่สำเร็จ)
+      if (stateChanged || timeToSync || fanStateSyncPending) {
         // ---------------- ส่วนควบคุมพัดลม (Local Server) ----------------
         WiFiClient
             client; // ประกาศใช้ตรงนี้เพื่อคืนหน่วยความจำหลังใช้เสร็จ (ป้องกัน Memory Leak)
         HTTPClient http;
-        http.setTimeout(2000); // รอคำตอบจากเครื่องกรองแค่ 2 วินาทีพอ
+        http.setTimeout(5000); // รอคำตอบจากเครื่องกรอง 5 วินาที (เผื่อ Air Cleaner
+                               // ค้างตอนเช็คอัปเดต)
         String url =
             String("http://") + serverIp + ":" + serverPort + "/trigger";
         http.begin(client, url);
@@ -231,10 +233,13 @@ void loop() {
         // เช็คว่าตอบกลับ HTTP 200 OK แสดงว่าเครื่องกรองได้รับคำสั่งและทำงานจริงๆ
         if (httpCode == HTTP_CODE_OK) {
           Serial.println("HTTP Response code: " + String(httpCode));
+          fanStateSyncPending = false;    // ส่งสำเร็จ ยกเลิกสถานะค้างส่ง
+          lastSyncMillis = currentMillis; // รีเซ็ตเวลา Sync เฉพาะตอนที่ส่งสำเร็จเท่านั้น
         } else {
           Serial.println(
               "Error on HTTP request: " + http.errorToString(httpCode) +
               " (Code: " + String(httpCode) + ")");
+          fanStateSyncPending = true; // ส่งล้มเหลว ให้พยายามส่งใหม่ในรอบ loop ถัดไป
         }
         http.end();
 
@@ -254,8 +259,8 @@ void loop() {
           }
         }
 
-        isDustHigh = shouldBeOn; // อัปเดตสถานะจำค่าปัจจุบันเสมอ เพื่อไม่ให้เกิด Loop ส่งซ้ำ
-        lastSyncMillis = currentMillis; // รีเซ็ตเวลา Sync
+        isDustHigh =
+            shouldBeOn; // อัปเดตสถานะจำค่าปัจจุบันเสมอ เพื่อไม่ให้เกิด Loop ส่งซ้ำบน LINE
       }
     }
   }
